@@ -39,7 +39,7 @@ public class HashtableImpl implements HashtableOpen8to16{
 
     private boolean containsKey(int[] keys, int key) {
         for (int i = 0; i < keys.length; i++) {
-            if(keys[i] == key && values[i] != null && values[i].equals(search(key))) return true;
+            if( values[i] != null && keys[i] == key && values[i].equals(search(key))) return true;
         }
         return false;
     }
@@ -71,10 +71,17 @@ public class HashtableImpl implements HashtableOpen8to16{
         }
         return index;
     }
+
+    private int findIndex(int key) {
+        for (int i = 0; i < keys.length; i++) {
+            if(keys[i] == key) return i;
+        }
+        return -1;
+    }
     @Override
     public Object search(int key) {
         for (int i = 0; i < keys.length; i++) {
-            if (keys[i] == key && values[i] != null) {
+            if (values[i] != null && keys[i] == key) {
                 return values[i];
             }
         }
@@ -83,16 +90,19 @@ public class HashtableImpl implements HashtableOpen8to16{
 
     @Override
     public void remove(int key) {
-        int index = findIndex(key, capacity, keys, isFilled);
-        if (keys[index] == key) {
-            keys[index] = 0;
-            values[index] = null;
-            isFilled[index] = false;
-            size--;
-            if (size > 0 && size <= capacity * LOAD_FACTOR) {
-                resizeAndRehash(capacity / 2);
+        if (containsKey(keys, key)) {
+            int index = findIndex(key);
+            if (keys[index] == key) {
+                keys[index] = 0;
+                values[index] = null;
+                isFilled[index] = false;
+                size--;
+                if (size > 0 && size <= capacity * LOAD_FACTOR) {
+                    resizeAndRehash(capacity / 2);
+                }
             }
         }
+
     }
 
     @Override
