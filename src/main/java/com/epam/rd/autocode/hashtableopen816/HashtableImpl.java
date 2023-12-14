@@ -9,11 +9,12 @@ public class HashtableImpl implements HashtableOpen8to16{
     private Object[] values;
     private int size;
     private int capacity;
-
+    private boolean[] isFilled;
 
     public HashtableImpl() {
         this.keys = new int[INIT_CAPACITY];
         this.values = new Object[INIT_CAPACITY];
+        this.isFilled = new boolean[INIT_CAPACITY];
         this.size = 0;
         this.capacity = INIT_CAPACITY;
     }
@@ -21,18 +22,24 @@ public class HashtableImpl implements HashtableOpen8to16{
     public void insert(int key, Object value) {
 
         if (size == capacity && ! containsKey(keys, key)) {
-            if(capacity == MAX_CAPACITY ) throw new IllegalStateException();
+            if(size == MAX_CAPACITY ) throw new IllegalStateException();
             resizeAndRehash(2 * capacity);
         }
-        int index = findIndex(key, capacity, keys);
-        keys[index] = key;
-        values[index] = value;
-        size++;
+        if (!containsKey(keys, key)) {
+            size++;
+            int index = findIndex(key, capacity, keys, isFilled);
+            keys[index] = key;
+            values[index] = value;
+            isFilled[index] = true;
+        } else {
+            int index = findIndex(key, capacity, keys, isFilled);
+            values[index] = value;
+        }
     }
 
     private boolean containsKey(int[] keys, int key) {
-        for (int tempKey: keys) {
-            if(tempKey == key) return true;
+        for (int i = 0; i < keys.length; i++) {
+            if(keys[i] == key && values[i] != null && values[i].equals(search(key))) return true;
         }
         return false;
     }
@@ -40,39 +47,47 @@ public class HashtableImpl implements HashtableOpen8to16{
     private void resizeAndRehash(int resizeFactor) {
         int newCapacity = Math.min(resizeFactor, MAX_CAPACITY);
         int[] newKeys = new int[newCapacity];
+        boolean[] newIsFilled = new boolean[newCapacity];
         Object[] newValues = new Object[newCapacity];
 
         for (int i = 0; i < capacity; i++) {
-            if (keys[i] != 0) {
-                int newIndex = findIndex(keys[i], newCapacity, newKeys);
+            if (values[i] != null) {
+                int newIndex = findIndex(keys[i], newCapacity, newKeys, newIsFilled);
                 newKeys[newIndex] = keys[i];
                 newValues[newIndex] = values[i];
+                newIsFilled[newIndex] = true;
             }
         }
 
         keys = newKeys;
         values = newValues;
         capacity = newCapacity;
+        isFilled = newIsFilled;
     }
-    private int findIndex(int key, int capacity, int[] array) {
+    private int findIndex(int key, int capacity, int[] array, boolean[] isFilled) {
         int index = Math.abs(key) % capacity;
-        while (array[index] != key && array[index] != 0) {
+        while (array[index] != key && isFilled[index]) {
             index = (index + 1) % capacity;
         }
         return index;
     }
     @Override
     public Object search(int key) {
-        int index = findIndex(key, capacity, keys);
-        return values[index];
+        for (int i = 0; i < keys.length; i++) {
+            if (keys[i] == key && values[i] != null) {
+                return values[i];
+            }
+        }
+        return null;
     }
 
     @Override
     public void remove(int key) {
-        int index = findIndex(key, capacity, keys);
+        int index = findIndex(key, capacity, keys, isFilled);
         if (keys[index] == key) {
             keys[index] = 0;
             values[index] = null;
+            isFilled[index] = false;
             size--;
             if (size > 0 && size <= capacity * LOAD_FACTOR) {
                 resizeAndRehash(capacity / 2);
